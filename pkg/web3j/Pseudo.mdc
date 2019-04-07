@@ -1,0 +1,92 @@
+---
+header-includes:
+  - \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+---
+
+\pagenumbering{gobble}
+\setcounter{algocf}{3}
+
+\DontPrintSemicolon 
+
+\IncMargin{1em}
+\begin{algorithm}
+\SetKw{Continue}{continue}
+\SetKwData{AvgBlockTime}{avgBlockTime}
+\SetKwData{Probabilities}{probabilities}
+\SetKwData{WaitBlocks}{waitBlocks}
+\SetKwData{GasPrice}{gasPrice}
+\SetKwData{Txs}{txs}
+\SetKwData{MinerData}{minerData}
+\SetKwData{GroupedByMiner}{groupedByMiner}
+\SetKwFunction{Sort}{Sort}
+\SetKwFunction{GetBlockCount}{GetBlockCount}
+\SetKwFunction{GetTxsForBlocks}{GetTxsForBlocks}
+\SetKwFunction{GetAvgBlockTime}{GetAvgBlockTime}
+\SetKwFunction{GroupBy}{GroupBy}
+\SetKwFunction{OrderBy}{OrderBy}
+\SetKwFunction{Select}{Select}
+\SetKwFunction{Min}{Min}
+\SetKwFunction{Add}{Add}
+\SetKwFunction{Sum}{Sum}
+\SetKwFunction{length}{length}
+\SetKwFunction{Ceil}{math.Ceil}
+\SetKwFunction{Pow}{math.Pow}
+\SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
+\Input{$maxWaitSeconds$ := 60 Desired maxiumum number of seconds a transaction should take to mine.
+ $sampleSize$ := 120 Number of recent blocks to sample.
+ $p$ := 98 Desired probability that the transaction will be mined within $maxWaitSeconds$.}
+\Output{$gp$ := The estimated gasPrice }
+\BlankLine
+\AvgBlockTime$\leftarrow$ \GetAvgBlockTime{$sampleSize$}\;
+\WaitBlocks$\leftarrow$ \Ceil{$maxWaitSeconds$ / \AvgBlockTime}\;
+\emph{Retrieve the last k := $sampleSize$ blocks including their transactions.}\;
+\Txs$\leftarrow$ \GetTxsForBlocks{$sampleSize$}\;
+\GroupedByMiner$\leftarrow$ \Txs.\GroupBy{$tx => tx.Miner$}\;
+\MinerData$\leftarrow$ []\;
+\ForEach{$group \in \GroupedByMiner$}{
+$miner\leftarrow group.$Key\;
+$blocks\leftarrow$\GetBlockCount{$group$}\;
+$gasPrices\leftarrow$group.\Select{$tx => tx.GasPrice$}\;
+$pricePercentile\leftarrow gasPrices[(gasPrices.\length{}-1)*20/100]]$\;
+$minGasPrice\leftarrow$\Min{$gasPrices$}\;
+\MinerData.\Add{Miner: miner, Blocks: blocks, GasPrice: minGasPrice, LowPercentileGasPrice: pricePercentile}\;
+}
+
+\MinerData$\leftarrow$\MinerData.\OrderBy{$m => m.LowPercentileGasPrice$}\;
+\Probabilities$\leftarrow$ []\;
+\ForEach{$idx, miner \in \MinerData$}{
+\emph{Compute probability that a tx will be accepted at a gasprice by the miner.}\;
+$blocksAccepting\leftarrow\MinerData[$idx:$].\Select{m => m.Blocks}.\Sum{}$\;
+$invProbPerBlock\leftarrow (sampleSize-blocksAccepting) / sampleSize$\;
+$probabilityAccepted\leftarrow 1 - $\Pow{$invProbPerBlock, waitBlocks$}\;
+\Probabilities.\Add{Probability: probabilityAccepted, GasPrice: miner.LowPercentileGasPrice}\;
+}
+
+$first\leftarrow$\Probabilities[0]\;
+$last\leftarrow$\Probabilities[\Probabilities.\length{}-1]
+
+\uIf{p >= first.Probability}{
+$gp\leftarrow first.GasPrice$\;
+\Return
+}\uElseIf{p <= last.Probability}{
+$gp\leftarrow last.GasPrice$\;
+\Return
+}
+\For{$i\leftarrow 0$ \KwTo \Probabilities.\length{}-1}{
+$left\leftarrow \Probabilities[i]$\;
+$right\leftarrow \Probabilities[i+1]$\;
+\uIf{$p < right.Probability$}{
+\Continue
+}
+
+$adjProb\leftarrow p - right.Probability$\;
+$windowSize\leftarrow left.Probability - right.Probability$\;
+$position\leftarrow adjProb / windowSize$\;
+$gasWindowSize\leftarrow left.GasPrice - right.GasPrice$\;
+$gp\leftarrow$\Ceil{$right.GasPrice + gasWindowSize*position$}\;
+\Return
+}
+
+gp$\leftarrow$ -1\;
+\caption{web3j fee estimation}\label{algo_naiveimpl}
+\end{algorithm}\DecMargin{1em}

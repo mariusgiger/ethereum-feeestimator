@@ -1,0 +1,49 @@
+---
+header-includes:
+  - \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+---
+
+\pagenumbering{gobble}
+\setcounter{algocf}{4}
+
+\DontPrintSemicolon 
+
+\IncMargin{1em}
+\begin{algorithm}
+\SetKw{Continue}{continue}
+\SetKwData{AvgBlockTime}{avgBlockTime}
+\SetKwData{Probabilities}{probabilities}
+\SetKwData{WaitBlocks}{waitBlocks}
+\SetKwData{GasPrice}{gasPrice}
+\SetKwData{Txs}{txs}
+\SetKwData{MinerData}{minerData}
+\SetKwData{GroupedByMiner}{groupedByMiner}
+\SetKwFunction{Sort}{Sort}
+\SetKwFunction{GetBlockCount}{GetBlockCount}
+\SetKwFunction{GetTxsForBlocks}{GetTxsForBlocks}
+\SetKwFunction{GetAvgBlockTime}{GetAvgBlockTime}
+\SetKwFunction{GroupBy}{GroupBy}
+\SetKwFunction{OrderBy}{OrderBy}
+\SetKwFunction{Select}{Select}
+\SetKwFunction{Min}{Min}
+\SetKwFunction{Add}{Add}
+\SetKwFunction{Sum}{Sum}
+\SetKwFunction{length}{length}
+\SetKwFunction{Ceil}{math.Ceil}
+\SetKwFunction{Pow}{math.Pow}
+\SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
+\Input{$block$ := A block with transactions.
+ $estimate$ := An estimated gas price.}
+\Output{$score$ := The score for  $estimate$ for $block$. }
+\BlankLine
+$block.Transactions\leftarrow block.Transactions.$\OrderBy{$tx => tx.GasPrice$}\;
+\For{$i\leftarrow 0$ \KwTo $block$.Transactions.\length{}-1}{
+$tx \leftarrow block.Transactions[i]$\;
+\uIf{$tx.GasPrice{} > prediction$}{
+score$\leftarrow (1.0 - (i / block.Transactions.\length{})) * 100.0$\;
+\Return
+}
+}
+score$\leftarrow$ 0\;
+\caption{calculate prediction score}\label{algo_predscore}
+\end{algorithm}\DecMargin{1em}

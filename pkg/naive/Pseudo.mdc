@@ -1,0 +1,34 @@
+---
+header-includes:
+  - \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+---
+
+\IncMargin{1em}
+\begin{algorithm}
+\SetKwData{E}{e}
+\SetKwData{GasPrices}{gasPrices}
+\SetKwData{GasPrice}{gasPrice}
+\SetKwData{Transactions}{transactions}
+\SetKwFunction{Sort}{Sort}
+\SetKwFunction{Add}{Add}
+\SetKwFunction{length}{length}
+\SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
+\Input{The last k := 20 blocks $Blocks$ with transactions}
+\Output{The estimated gasPrice $gp$}
+\BlankLine
+\emph{Retrieve the last k blocks including their transactions.}
+
+\GasPrices$\leftarrow$ []\;
+
+\For{$i\leftarrow 0$ \KwTo $k$}{
+\Transactions$\leftarrow$ Blocks[k].Transactions\;
+\For{$j\leftarrow 0$ \KwTo $\Transactions.\length{}$}{
+\GasPrices.\Add{$\Transactions[j].\GasPrice$}\;
+}
+}
+\Sort{\GasPrices}\;
+percentile$\leftarrow$ 60\;
+index$\leftarrow$ (\GasPrices.\length{}-1)*percentile / 100\;
+gp$\leftarrow$ \GasPrices[index]\;
+\caption{naive fee estimation}\label{algo_naiveimpl}
+\end{algorithm}\DecMargin{1em}

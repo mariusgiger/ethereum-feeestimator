@@ -1,0 +1,86 @@
+---
+header-includes:
+  - \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+---
+
+\DontPrintSemicolon 
+
+\IncMargin{1em}
+\begin{algorithm}
+\setcounter{algocf}{2}
+
+\SetKwData{Hashpower}{hashpower}
+\SetKwData{PredictionTable}{predictionTable}
+\SetKwData{MinGasPrices}{minGasPrices}
+\SetKwData{GPGroups}{gpGroups}
+\SetKwData{GPGroupCounts}{gpGroupCounts}
+\SetKwData{TotalBlocks}{totalBlocks}
+\SetKwData{CumulativeSums}{cumulativeSums}
+\SetKwFunction{Sort}{Sort}
+\SetKwFunction{Length}{Length}
+\SetKwFunction{Select}{Select}
+\SetKwFunction{First}{First}
+\SetKwFunction{Add}{Add}
+\SetKwFunction{Sum}{Sum}
+\SetKwFunction{Max}{Max}
+\SetKwFunction{Min}{Min}
+\SetKwFunction{GroupBy}{GroupBy}
+\SetKwFunction{OrderBy}{OrderBy}
+\SetKwFunction{Where}{Where}
+\SetKwFunction{RoundToTenGwei}{RoundToTenGwei}
+\SetKwFunction{CumulativeSum}{CumulativeSum}
+\SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
+\Input{A number of $blocks$ with transactions}
+\Output{The $predictionTable$ for estimating gas prices}
+\BlankLine
+\MinGasPrices$\leftarrow$ []\;
+
+\emph{Extract the minimum gas price of every block.}\;
+\ForEach{$block \in blocks$}{
+$txs\leftarrow block.\Select{b => b.Transactions}$\;
+$minGasPrice\leftarrow txs.\OrderBy{t => t.GasPrice}.\First{}$\;
+\MinGasPrices.\Add{minGasPrice}\;
+}
+
+\emph{Split the gas prices into buckets of 10 Gwei.}\;
+\GPGroups$\leftarrow$\MinGasPrices.\GroupBy{g => \RoundToTenGwei{g}}\;
+\GPGroups$\leftarrow$\GPGroups.\OrderBy{g => g.Key}\;
+\GPGroupCounts$\leftarrow$\GPGroups.\Select{g => g.\Length{}}\;
+\CumulativeSums$\leftarrow$\CumulativeSum{\GPGroupCounts}\;
+\TotalBlocks$\leftarrow$\Sum{\GPGroupCounts}\;
+\;
+\emph{Calculate hashtable.}\;
+\Hashpower$\leftarrow$ []\;
+\For{$i\leftarrow 0$ \KwTo \CumulativeSums.\Length{}}{
+$hashPct\leftarrow$\CumulativeSums[$i$] / \TotalBlocks * 100\;
+\Hashpower.\Add{$HashPct: hashPct, Price: \GPGroups[i].Key,
+Count: \GPGroupCounts[i]$}\;
+}
+
+\PredictionTable$\leftarrow$ []\;
+\For{$i\leftarrow 0\; i < 10; i = i + 1$}{
+\PredictionTable.\Add{Price: i}\;
+}
+\For{$i\leftarrow 0\; i < 1010; i = i + 10$}{
+\PredictionTable.\Add{Price: i}\;
+}
+
+\ForEach{$val \in \PredictionTable$}{
+\emph{Get the hashpower accpeting the gas price.}
+
+$prices\leftarrow \Hashpower.\Select{g => g.Price}$\;
+$hpas\leftarrow \Hashpower.\Where{g => g.Price >= val.Price}.\Select{g => g.HashPcts}$\;
+
+\uIf{val.Price > \Max{prices}}{
+  $val.HashPowerAccepting\leftarrow 100$\;
+}
+\uElseIf{val.Price < \Min{prices}}{
+  $val.HashPowerAccepting\leftarrow 0$\;
+} \Else{
+   $val.HashPowerAccepting\leftarrow \Max{hpas}$\;
+}
+}
+$\leftarrow\PredictionTable$\;
+
+\caption{MakePredictionTable() for Ethereum gasstation estimation}\label{algo_makepredictiontable}
+\end{algorithm}\DecMargin{1em}

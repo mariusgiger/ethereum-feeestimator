@@ -1,0 +1,37 @@
+---
+header-includes:
+  - \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+---
+
+\DontPrintSemicolon 
+
+\IncMargin{1em}
+\begin{algorithm}
+\setcounter{algocf}{1}
+
+\SetKwData{PredictionTable}{predictionTable}
+\SetKwFunction{Select}{Select}
+\SetKwFunction{Max}{Max}
+\SetKwFunction{Min}{Min}
+\SetKwFunction{Where}{Where}
+\SetKwFunction{MakePredictionTable}{MakePredictionTable}
+\SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
+\Input{The last k := 200 $blocks$ with transactions}
+\Output{The estimated gas price $safeLowPrice$, $standardPrice$, $fastPrice$, $fastestPrice$}
+\BlankLine
+\emph{Retrieve the last k blocks including their transactions.}\;
+\PredictionTable$\leftarrow\MakePredictionTable{$blocks$}$\;
+\;
+$safeLow\leftarrow$\PredictionTable.\Where{p => p.HashPowerAccepting > 35}\;
+$standard\leftarrow$\PredictionTable.\Where{p => p.HashPowerAccepting > 60}\;
+$fast\leftarrow$\PredictionTable.\Where{p => p.HashPowerAccepting > 90}\;
+$hpaMax\leftarrow$\Max{\PredictionTable.\Select{p => p.HashPowerAccepting}}\;
+$fastest\leftarrow$\PredictionTable.\Where{p => p.HashPowerAccepting == hpaMax}\;
+\;
+$safeLowPrice\leftarrow$\Min{safeLow} / 10\;
+$standardPrice\leftarrow$\Min{standard} / 10\;
+$fastPrice\leftarrow$\Min{fast} / 10\;
+$fastestPrice\leftarrow$\Min{fastest} / 10\;
+
+\caption{Ethereum gasstation estimation}\label{algo_naiveimpl}
+\end{algorithm}\DecMargin{1em}
